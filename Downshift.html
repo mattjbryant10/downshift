@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Downshift"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>Downshift</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+<style>
+/* Layout: one phone-width column with a bottom tab bar. A rev gauge carries the
+   Green / Yellow / Red check-in; everything else stays quiet so one job shows at a time. */
+:root {
+  --bg: #e9eff2; --surface: #f8fafb; --line: #c6d2d9; --ink: #12242f; --muted: #4c6170;
+  --accent: #0f5e7a; --on-accent: #ffffff;
+  --green: #4fc48d; --yellow: #f4c63f; --red: #ff7d68; --on-level: #12242f;
+  --display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+  --body: "Atkinson Hyperlegible", Verdana, sans-serif;
+  --mono: "Atkinson Hyperlegible Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d1a22; --surface: #162732; --line: #2c4351; --ink: #e8f0f4; --muted: #a0b5c1;
+  --accent: #7fd0ea; --on-accent: #0d1a22; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0d1a22; --surface: #162732; --line: #2c4351; --ink: #e8f0f4; --muted: #a0b5c1;
+  --accent: #7fd0ea; --on-accent: #0d1a22; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 400 17px/1.5 var(--body); -webkit-text-size-adjust: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 800; line-height: 1.12; margin: 0; text-wrap: balance; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.35rem; }
+p { margin: 0; }
+.wrap { max-width: 540px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px calc(96px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 20px; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mark { font: 800 1.1rem var(--display); letter-spacing: -.01em; }
+.link { background: none; border: 0; padding: 6px 0; color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; text-align: left; }
+.muted { color: var(--muted); }
+.small { font-size: .92rem; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.tight { gap: 6px; }
+.label { font-size: .8rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+
+/* Buttons */
+.btn { min-height: 52px; padding: 12px 18px; border-radius: 12px; border: 2px solid var(--ink); background: transparent; font-weight: 700; text-align: center; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-family: var(--display); font-size: 1.15rem; }
+.btn.small-btn { min-height: 44px; padding: 8px 14px; font-size: .95rem; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > .btn { flex: 1 1 130px; }
+
+/* Check-in */
+.bands { display: flex; flex-direction: column; gap: 10px; }
+.band { display: block; width: 100%; border: 0; border-radius: 16px; padding: 18px 20px; min-height: 108px; text-align: left; color: var(--on-level); }
+.band b { display: block; font: 800 1.9rem/1.1 var(--display); }
+.band span { display: block; margin-top: 6px; }
+.g { background: var(--green); } .y { background: var(--yellow); } .r { background: var(--red); }
+
+/* Level chip */
+.chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 14px 4px 8px; min-height: 44px; font-weight: 700; }
+.chip svg { width: 40px; height: 24px; display: block; }
+
+/* Next-up card */
+.hero { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.row > .field { flex: 1 1 140px; }
+.field label { font-weight: 700; font-size: .95rem; }
+input[type=text], input[type=time], input[type=date], textarea, select { width: 100%; min-height: 48px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-size: 16px; min-width: 0; }
+textarea { min-height: 76px; resize: vertical; line-height: 1.4; }
+input.title { font: 800 1.45rem/1.2 var(--display); background: transparent; border: 0; border-bottom: 2px solid var(--line); border-radius: 0; padding: 4px 0 8px; }
+.note { border-left: 4px solid var(--accent); padding: 2px 0 2px 12px; }
+.ifthen { font-style: italic; }
+
+/* Task rows */
+.list { display: flex; flex-direction: column; }
+.task { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+.task:last-child { border-bottom: 1px solid var(--line); }
+.task .t { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.task.done .t { text-decoration: line-through; color: var(--muted); }
+.check { flex: none; width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; padding: 0; }
+.check i { width: 26px; height: 26px; border: 2px solid var(--ink); border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 700; font-size: .9rem; line-height: 1; }
+.check.on i { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.mini { flex: none; background: none; border: 0; color: var(--accent); font-size: .88rem; font-weight: 700; min-height: 44px; padding: 4px 6px; text-decoration: underline; text-underline-offset: 3px; }
+.addline { display: flex; gap: 8px; }
+.addline input { flex: 1 1 auto; }
+.addline .btn { flex: none; min-height: 48px; padding: 8px 16px; }
+
+/* Lists of tools */
+.tool { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 12px 0; min-height: 64px; background: none; border: 0; border-top: 1px solid var(--line); text-align: left; }
+.tool:last-child { border-bottom: 1px solid var(--line); }
+.tool b { display: block; font-size: 1.08rem; }
+.tool .tm { flex: none; font: 500 .85rem var(--mono); color: var(--muted); }
+details { border-top: 1px solid var(--line); }
+details:last-of-type { border-bottom: 1px solid var(--line); }
+summary { list-style: none; cursor: pointer; padding: 14px 28px 14px 0; font-weight: 700; position: relative; min-height: 52px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; position: absolute; right: 4px; top: 10px; font: 500 1.4rem var(--mono); color: var(--muted); }
+details[open] > summary::after { content: "\2212"; }
+.body { padding: 0 0 18px; display: flex; flex-direction: column; gap: 12px; }
+h3.sec { font-size: 1.25rem; padding: 14px 28px 14px 0; }
+summary h3 { font-size: 1.25rem; }
+summary h3 + span { display: block; font-weight: 400; font-size: .92rem; color: var(--muted); margin-top: 2px; }
+ul.plain, ol.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.quote { font-family: var(--display); font-weight: 600; font-size: 1.1rem; line-height: 1.3; }
+.checkline { display: flex; align-items: center; gap: 6px; }
+.step { border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+
+/* Tabs */
+nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+nav.tabs div { max-width: 540px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); }
+nav.tabs button { min-height: 62px; background: none; border: 0; border-top: 4px solid transparent; font-weight: 700; color: var(--muted); }
+nav.tabs button[aria-current=page] { color: var(--ink); border-top-color: var(--accent); }
+
+/* Full-screen layer for timers and resets */
+#layer { position: fixed; inset: 0; z-index: 20; background: var(--bg); overflow-y: auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.screen { min-height: 100%; max-width: 540px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px; display: flex; flex-direction: column; gap: 20px; }
+.center { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 18px; text-align: center; min-height: 300px; }
+.clock { font: 500 clamp(4.5rem, 24vw, 7rem)/1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.bar { width: 100%; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+.ringbox { width: 220px; height: 220px; display: grid; place-items: center; }
+.ring { width: 110px; height: 110px; border-radius: 50%; background: var(--accent); opacity: .85; transition: transform 1s ease-in-out; }
+.ring.grow { transform: scale(1.95); transition-duration: 4s; }
+.ring.shrink { transform: scale(1); transition-duration: 6s; }
+.ring.hold { transform: scale(1.5); transition-duration: 5s; }
+.big-n { font: 800 5.5rem/1 var(--display); }
+.count { font: 500 2rem var(--mono); }
+.dial { font: 800 2.6rem/1 var(--display); }
+@media (prefers-reduced-motion: reduce) { .ring, .ring.grow, .ring.shrink, .ring.hold { transition: none; transform: scale(1.4); } }
+</style>
+
+<div id="app" class="wrap">
+  <div class="top"><span class="mark">Downshift</span></div>
+  <h1>How's your body right now?</h1>
+</div>
+<nav class="tabs" aria-label="Sections"><div id="tabs"></div></nav>
+<div id="layer" hidden></div>
+
+<script>
+(() => {
+const KEY = 'downshift-v1', TIMER_KEY = 'downshift-timer';
+const pad = n => String(n).padStart(2, '0');
+const dayKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseDay = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const today = () => dayKey(new Date());
+const weekKey = () => { const d = new Date(); d.setDate(d.getDate() - d.getDay()); return dayKey(d); };
+const uid = () => Math.random().toString(36).slice(2, 9);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const $ = id => document.getElementById(id);
+
+const blankWeek = () => ({ key: weekKey(), sun: [false, false], top: ['', '', ''], hard: '', backup: '', pack: false, worked: '', blocked: '', change: '', lastChange: '' });
+const blank = () => ({ updatedAt: 0, day: today(), level: null, resetDone: false, tasks: [], week: blankWeek(), big: [], plan: { signs: '', helps: '', where: '', who: '', adults: '' } });
+
+function lsGet(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+function lsDel(k) { try { localStorage.removeItem(k); } catch {} }
+
+let state = Object.assign(blank(), lsGet(KEY) || {});
+const ui = { tab: 'today', open: new Set(), sync: 'device', confirm: null, layer: null };
+const dow = new Date().getDay();
+ui.open.add(dow === 5 ? 'fri' : 'sun');
+
+/* A new day clears the check-in and finished work. Unfinished work stays. */
+function rollover() {
+  const t = today();
+  if (state.day !== t) {
+    state.day = t; state.level = null; state.resetDone = false;
+    state.tasks = state.tasks.filter(x => !x.done);
+    state.tasks.forEach(x => { if (x.snooze && x.snooze <= t) x.snooze = null; });
+  }
+  if (!state.week || state.week.key !== weekKey()) {
+    const last = (state.week && state.week.change) || '';
+    state.week = blankWeek(); state.week.lastChange = last;
+  }
+  lsSet(KEY, state);
+}
+
+/* Saving: this device right away, the viewer's private account storage shortly after. */
+let ref = null, pushTimer = null, writing = false, again = false;
+function save() { state.updatedAt = Date.now(); lsSet(KEY, state); clearTimeout(pushTimer); pushTimer = setTimeout(push, 800); }
+async function push() {
+  if (!ref) return;
+  if (writing) { again = true; return; }
+  writing = true;
+  try { await ref.set(JSON.parse(JSON.stringify(state))); setSync('account'); }
+  catch { setSync('device'); }
+  writing = false;
+  if (again) { again = false; push(); }
+}
+function setSync(v) { if (ui.sync !== v) { ui.sync = v; const el = $('sync-line'); if (el) el.textContent = syncText(); } }
+const syncText = () => ui.sync === 'account' ? 'Saved to your account. Other people who open this page can’t see it.' : 'Saved on this device only.';
+const typing = () => { const a = document.activeElement; return a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); };
+async function pull() {
+  if (!ref) return;
+  try {
+    const snap = await ref.get();
+    const data = snap.exists ? snap.data() : null;
+    if (data && data.updatedAt > state.updatedAt) {
+      if (typing()) return;
+      state = Object.assign(blank(), data); rollover(); render();
+    } else if (state.updatedAt > ((data && data.updatedAt) || 0)) { await push(); return; }
+    setSync('account');
+  } catch { setSync('device'); }
+}
+async function connect() {
+  try {
+    if (!window.claude || !window.claude.use) return;
+    const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    if (!db || !user) return;
+    const id = await user.id();
+    if (!id) return;
+    ref = db.collection('data/users/' + id).doc('state');
+    await pull();
+  } catch { setSync('device'); }
+}
+
+const active = () => state.tasks.filter(t => !t.done && !t.snooze);
+const later = () => state.tasks.filter(t => !t.done && t.snooze);
+const finished = () => state.tasks.filter(t => t.done);
+const findTask = id => state.tasks.find(t => t.id === id);
+const newTask = title => ({ id: uid(), title, step: '', means: '', start: '', place: '', done: false, snooze: null, parked: null });
+const fmtTime = v => { if (!v) return ''; let [h, m] = v.split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${pad(m)} ${ap}`; };
+const LEVELS = { green: { name: 'Green', c: 'g' }, yellow: { name: 'Yellow', c: 'y' }, red: { name: 'Red', c: 'r' } };
+
+/* The rev gauge: green, yellow and red zones with a needle at today's level. */
+function gauge(level) {
+  const pt = (a, r) => [32 + r * Math.cos(a * Math.PI / 180), 34 - r * Math.sin(a * Math.PI / 180)].map(n => n.toFixed(2));
+  const arc = (a, b, c) => { const [x1, y1] = pt(a, 26), [x2, y2] = pt(b, 26); return `<path d="M${x1} ${y1}A26 26 0 0 1 ${x2} ${y2}" fill="none" stroke="var(--${c})" stroke-width="8"/>`; };
+  const ang = { green: 150, yellow: 90, red: 30 }[level] ?? 90;
+  const [nx, ny] = pt(ang, 22);
+  return `<svg viewBox="0 0 64 38" aria-hidden="true">${arc(178, 123, 'green')}${arc(117, 63, 'yellow')}${arc(57, 2, 'red')}<line x1="32" y1="34" x2="${nx}" y2="${ny}" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/></svg>`;
+}
+
+const top = () => `<div class="top"><span class="mark">Downshift</span><button class="link small" data-act="help">Need someone now?</button></div>`;
+const dateLine = () => new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+/* ---------- Today ---------- */
+function viewToday() {
+  if (!state.level) return top() + `
+    <div class="stack tight"><h1>How's your body right now?</h1><p class="muted">Body first, then homework. Pick the closest one.</p></div>
+    <div class="bands">
+      <button class="band g" data-act="level" data-v="green"><b>Green</b><span>Steady. I can think, talk, and start things.</span></button>
+      <button class="band y" data-act="level" data-v="yellow"><b>Yellow</b><span>Revved up. Racing thoughts, irritable, restless, rushing, perfectionism.</span></button>
+      <button class="band r" data-act="level" data-v="red"><b>Red</b><span>Overloaded. Panic, yelling, crying, freezing, or shutting down.</span></button>
+    </div>`;
+
+  if (state.level === 'red') {
+    const p = state.plan;
+    return top() + `
+    <div class="stack tight"><h1>Homework can wait.</h1><p>Right now your only job is safety and space. Problem-solving comes later.</p></div>
+    <p class="quote">"My alarm is going off. I don't have to solve everything right now."</p>
+    <div class="stack tight">
+      <p><b>Go to:</b> ${esc(p.where) || 'somewhere quiet and safe'}</p>
+      <p><b>Talk to:</b> ${esc(p.who) || 'someone you trust'}</p>
+      ${p.helps ? `<p><b>What helps me:</b> ${esc(p.helps)}</p>` : ''}
+    </div>
+    <div class="list">${toolRow('quiet')}${toolRow('breathe')}${toolRow('ground')}</div>
+    <button class="btn primary" data-act="recheck">I'm calmer. Check again.</button>
+    <p class="small">Not safe, or thinking about hurting yourself? <button class="link" data-act="help">Get help now</button></p>`;
+  }
+
+  if (state.level === 'yellow' && !state.resetDone) return top() + `
+    <div class="top">${levelChip()}</div>
+    <div class="stack tight"><h1>Bring it down first.</h1><p>Two minutes now makes starting easier. Then you'll pick one small task.</p></div>
+    <button class="btn primary" data-act="reset" data-v="breathe">Start the 2-minute reset</button>
+    <div class="row"><button class="btn" data-act="tab" data-v="reset">Choose a different reset</button></div>
+    <button class="link" data-act="skip-reset">Skip for now</button>`;
+
+  const list = active(), first = list[0], rest = list.slice(1), done = finished(), snz = later();
+  let main;
+  if (first) {
+    const it = first.start && first.place ? `If it's ${esc(fmtTime(first.start))}, then I open this at ${esc(first.place)}.` : '';
+    main = `<section class="hero" aria-label="Must-do">
+      <label class="label" for="t-title">${state.level === 'yellow' ? 'One small task' : 'Must-do'}</label>
+      <input class="title" id="t-title" type="text" data-t="${first.id}" data-f="title" value="${esc(first.title)}">
+      ${first.parked ? `<p class="note small"><b>Last time you stopped at:</b> ${esc(first.parked.where) || 'not noted'}<br><b>Next:</b> ${esc(first.parked.next) || 'not noted'}</p>` : ''}
+      <div class="field"><label for="t-step">First 5-minute step</label><input id="t-step" type="text" data-t="${first.id}" data-f="step" placeholder="Open the book to the right page" value="${esc(first.step)}"></div>
+      <div class="field"><label for="t-means">"Done" means</label><input id="t-means" type="text" data-t="${first.id}" data-f="means" placeholder="Every problem tried, not perfect" value="${esc(first.means)}"></div>
+      <div class="row">
+        <div class="field"><label for="t-start">Start time</label><input id="t-start" type="time" data-t="${first.id}" data-f="start" value="${esc(first.start)}"></div>
+        <div class="field"><label for="t-place">Place</label><input id="t-place" type="text" data-t="${first.id}" data-f="place" placeholder="Kitchen table" value="${esc(first.place)}"></div>
+      </div>
+      <p class="ifthen small" id="ifthen"${it ? '' : ' hidden'}>${it}</p>
+      <button class="btn primary" data-act="focus" data-v="${first.id}" data-m="5">Start 5 minutes</button>
+      <div class="row"><button class="btn small-btn" data-act="focus" data-v="${first.id}" data-m="15">15 min</button><button class="btn small-btn" data-act="focus" data-v="${first.id}" data-m="25">25 min</button></div>
+    </section>`;
+  } else if (done.length) {
+    main = `<section class="hero"><h2>That's the list. Done is done.</h2><p>Stop here. Keep the last 30 to 60 minutes before bed away from schoolwork and stressful scrolling.</p></section>`;
+  } else {
+    main = `<section class="stack"><h2>What's the one thing that has to get done?</h2><p class="muted">Then add anything else you need to remember.</p></section>`;
+  }
+  const extra = dow === 0 ? ['It’s Sunday. Plan the week in 15 minutes.', 'Open the week plan'] : dow === 5 ? ['It’s Friday. Take 5 minutes to close out the week.', 'Open the Friday check'] : null;
+  return top() + `
+    <div class="top"><div><h1>Today</h1><p class="muted small">${esc(dateLine())}</p></div>${levelChip()}</div>
+    ${main}
+    <div class="stack">
+      ${rest.length ? `<div class="stack tight"><span class="label">After that</span><div class="list">${rest.map(taskRow).join('')}</div></div>` : ''}
+      ${list.length > 3 ? `<p class="small muted">That's a lot for one day. Move one to tomorrow if you can.</p>` : ''}
+      <form class="addline" id="add-form"><input id="add-task" type="text" aria-label="Add to today's list" placeholder="${first ? 'Add something else' : 'Math p. 42, odd problems'}" autocomplete="off"><button class="btn" type="submit">Add</button></form>
+      ${snz.length ? `<p class="small muted">${snz.length} moved to tomorrow.</p>` : ''}
+      ${done.length ? `<div class="stack tight"><span class="label">Done today</span><div class="list">${done.map(taskRow).join('')}</div></div>` : ''}
+    </div>
+    ${extra ? `<p class="small">${extra[0]} <button class="link" data-act="tab" data-v="plan">${extra[1]}</button></p>` : ''}`;
+}
+const levelChip = () => `<button class="chip" data-act="recheck" aria-label="Today's level is ${LEVELS[state.level].name}. Check in again.">${gauge(state.level)}${LEVELS[state.level].name}</button>`;
+function taskRow(t) {
+  return `<div class="task${t.done ? ' done' : ''}">
+    <button class="check${t.done ? ' on' : ''}" data-act="toggle" data-v="${t.id}" aria-label="${t.done ? 'Mark not done' : 'Mark done'}: ${esc(t.title)}"><i>${t.done ? '✓' : ''}</i></button>
+    <span class="t">${esc(t.title)}</span>
+    ${t.done ? '' : `<button class="mini" data-act="first" data-v="${t.id}">Do first</button><button class="mini" data-act="snooze" data-v="${t.id}">Tomorrow</button>`}
+  </div>`;
+}
+
+/* ---------- Reset ---------- */
+const RESETS = {
+  breathe: { name: 'Long-exhale breathing', short: 'In for 4, out for 6', tm: '2 min', kind: 'timeline' },
+  muscle: { name: 'Muscle release', short: 'Tense for 5 seconds, then let go', tm: '30 sec', kind: 'timeline' },
+  ground: { name: '5-4-3-2-1 grounding', short: 'Come back to the room with your senses', tm: '1 min', kind: 'cards' },
+  nameit: { name: 'Name it', short: 'Say what is happening', tm: '10 sec', kind: 'phrase' },
+  move: { name: 'Movement', short: 'Brisk walk, stairs, or wall push-ups', tm: '5 min', kind: 'timeline' },
+  quiet: { name: 'Less input', short: 'Dim the lights, use headphones, or go somewhere quiet', tm: '10 min', kind: 'timeline' }
+};
+const toolRow = id => { const r = RESETS[id]; return `<button class="tool" data-act="reset" data-v="${id}"><span><b>${r.name}</b><span class="muted small">${r.short}</span></span><span class="tm">${r.tm}</span></button>`; };
+function viewReset() {
+  return top() + `
+    <div class="stack tight"><h1>Reset</h1><p class="muted">Pick one. You don't need to do them all.</p></div>
+    <div class="stack tight"><span class="label">Anywhere, even in class</span><div class="list">${['breathe', 'muscle', 'ground', 'nameit'].map(toolRow).join('')}</div></div>
+    <div class="stack tight"><span class="label">When you can step away</span><div class="list">${['move', 'quiet'].map(toolRow).join('')}</div></div>
+    <div class="stack tight"><span class="label">Every day</span>
+      <ul class="plain">
+        <li><b>Sleep:</b> aim for 8 to 10 hours, with a similar wake time every day.</li>
+        <li><b>Wind-down:</b> spend the last 30 to 60 minutes before bed away from schoolwork and stressful scrolling.</li>
+        <li><b>Movement and daylight:</b> get outside and move most days.</li>
+        <li><b>Food and caffeine:</b> eat regularly, and limit caffeine, especially after lunch.</li>
+        <li><b>True downtime:</b> do at least one thing with no grade, score, or audience.</li>
+      </ul>
+    </div>`;
+}
+
+/* ---------- Stuck ---------- */
+const STUCK = [
+  ['Getting it done', [
+    ['I can’t get started', 'Five-minute start', 'Set a timer and do only the first small step.', 'today', 'Go to Today'],
+    ['A big assignment feels huge', 'Backward plan', 'Start at the due date and map each step backward.', 'plan', 'Open big assignments'],
+    ['My stuff is everywhere', 'One home', 'Use one calendar, one task list, and one place for school papers.'],
+    ['I keep forgetting things', 'Capture it', 'Write tasks down or set a reminder right away.', 'today', 'Add it to Today'],
+    ['I never know how long things take', 'Estimate and check', 'Guess how long a task will take, then compare it with the actual time.', 'plan', 'Track it on a big assignment'],
+    ['I can’t focus', 'Focus sprint', 'Work for 15 to 25 minutes, then take a 5-minute break with your phone out of reach.', 'today', 'Go to Today'],
+    ['I lose my place when I switch tasks', 'Parking note', 'Write down where you stopped and what comes next. Press Stop during a timer to do this.'],
+    ['I don’t know what comes first', 'Top three', 'Choose one must-do and two should-dos.', 'plan', 'Open my week'],
+    ['I’m about to lose it', 'Pause plan', 'Name the feeling, take five slow breaths, then choose a next step.'],
+    ['I make a plan and then don’t do it', 'If-then plan', '"If it’s 4:30, then I open my math homework at the kitchen table." Add a start time and place on Today.', 'today', 'Go to Today']
+  ]],
+  ['When I can’t stop', [
+    ['I don’t know when it’s finished', 'Define "done"', 'Decide what finished looks like before you start.', 'today', 'Go to Today'],
+    ['I keep working past the time', 'Set a time limit', 'Stop when the planned time ends unless there is a real reason to continue.'],
+    ['It has to be perfect', 'Try "good enough"', 'Choose one low-stakes task each week and do it at 80%.'],
+    ['Everything feels urgent', 'Cut one commitment', 'Choose one thing to postpone, shrink, or drop.']
+  ]]
+];
+function viewStuck() {
+  return top() + `<div class="stack tight"><h1>Stuck?</h1><p class="muted">Tap what's happening. You'll get one thing to try.</p></div>` +
+    STUCK.map(([group, items], g) => `<div class="stack tight"><span class="label">${group}</span><div>${items.map((it, i) => {
+      const k = `st${g}-${i}`;
+      return `<details data-key="${k}"${ui.open.has(k) ? ' open' : ''}><summary>${it[0]}</summary><div class="body"><p><b>${it[1]}.</b> ${it[2]}</p>${it[3] ? `<div><button class="btn small-btn" data-act="tab" data-v="${it[3]}">${it[4]}</button></div>` : ''}</div></details>`;
+    }).join('')}</div></div>`).join('');
+}
+
+/* ---------- Plan ---------- */
+const bind = (path, val, id, label, ph, area) => `<div class="field"><label for="${id}">${label}</label>${area
+  ? `<textarea id="${id}" data-b="${path}" placeholder="${esc(ph || '')}">${esc(val)}</textarea>`
+  : `<input id="${id}" type="text" data-b="${path}" placeholder="${esc(ph || '')}" value="${esc(val)}">`}</div>`;
+const sec = (k, title, sub, inner) => `<details data-key="${k}"${ui.open.has(k) ? ' open' : ''}><summary><h3>${title}</h3><span>${sub}</span></summary><div class="body">${inner}</div></details>`;
+const checkLine = (act, idx, on, text) => `<div class="checkline"><button class="check${on ? ' on' : ''}" data-act="${act}" data-v="${idx}" aria-pressed="${on}" aria-label="${esc(text)}"><i>${on ? '✓' : ''}</i></button><span>${esc(text)}</span></div>`;
+function viewPlan() {
+  const w = state.week, p = state.plan;
+  const days = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Weekend'];
+  const sunday = `
+    ${w.lastChange ? `<p class="note small"><b>Last week you chose to change:</b> ${esc(w.lastChange)}</p>` : ''}
+    ${checkLine('wk-sun', 0, w.sun[0], 'Check tests, assignments, and activities')}
+    <div class="stack tight"><span class="label">This week's three priorities</span>
+      ${bind('week.top.0', w.top[0], 'w-top0', 'Must-do', 'The one that matters most')}
+      ${bind('week.top.1', w.top[1], 'w-top1', 'Should-do')}
+      ${bind('week.top.2', w.top[2], 'w-top2', 'Should-do')}
+    </div>
+    ${checkLine('wk-sun', 1, w.sun[1], 'Block time for work, rest, and sleep')}
+    <div class="field"><label for="w-hard">Hardest day</label><select id="w-hard" data-b="week.hard">${days.map(d => `<option value="${d}"${w.hard === d ? ' selected' : ''}>${d || 'Choose a day'}</option>`).join('')}</select></div>
+    ${bind('week.backup', w.backup, 'w-backup', 'Backup plan for that day', 'What can move or shrink?')}`;
+  const friday = `
+    ${checkLine('wk-pack', 0, w.pack, 'Clear out your backpack')}
+    ${bind('week.worked', w.worked, 'w-worked', 'What worked?')}
+    ${bind('week.blocked', w.blocked, 'w-blocked', 'What got in the way?')}
+    ${bind('week.change', w.change, 'w-change', 'One thing to change next week')}`;
+  const big = `
+    <p class="muted small">Start at the due date and work backward. Put the last step in first.</p>
+    ${state.big.map(bigCard).join('')}
+    <form class="stack" id="big-form">
+      <div class="row">
+        <div class="field"><label for="big-title">Assignment</label><input id="big-title" type="text" placeholder="History essay" autocomplete="off"></div>
+        <div class="field"><label for="big-due">Due date</label><input id="big-due" type="date"></div>
+      </div>
+      <button class="btn" type="submit">Add assignment</button>
+    </form>`;
+  const reset = `
+    ${bind('plan.signs', p.signs, 'p-signs', 'My early warning signs', 'Tight shoulders, snapping at people', true)}
+    ${bind('plan.helps', p.helps, 'p-helps', 'Two things that help', '', true)}
+    ${bind('plan.where', p.where, 'p-where', 'Where I can go', 'At school and at home')}
+    ${bind('plan.who', p.who, 'p-who', 'Who I can talk to')}
+    ${bind('plan.adults', p.adults, 'p-adults', 'What I’d like adults to say or do', '', true)}
+    <p class="muted small">Your Red screen uses these answers.</p>
+    <div><button class="btn small-btn" data-act="copy-plan" id="copy-btn">Copy my plan to share</button></div>
+    <textarea id="copy-fallback" aria-label="Your plan as text" hidden readonly></textarea>`;
+  const adults = `
+    <p class="muted small">Show this part to a parent, teacher, or coach.</p>
+    <ul class="plain">
+      <li><b>Regulate first:</b> lower your voice, slow down, and say less.</li>
+      <li><b>Time it well:</b> have problem-solving talks when everyone is calm, not mid-meltdown.</li>
+      <li><b>Collaborate:</b> ask what feels hardest, then let your teen choose the first tool.</li>
+      <li><b>Start small:</b> pick one tool for two weeks rather than overhauling everything.</li>
+      <li><b>Praise the process:</b> notice starting, asking for help, and recovering after a setback.</li>
+      <li><b>Fade support:</b> move from doing it together, to a reminder, to a quick check-in.</li>
+    </ul>
+    <div class="stack tight"><span class="label">Try saying</span>
+      <p class="quote">"Do you want help, space, or company?"</p>
+      <p class="quote">"What's the smallest next step?"</p>
+      <p class="quote">"We can figure this out after your body settles."</p>
+      <p class="quote">"You don't have to solve the whole thing tonight."</p>
+      <p class="quote">"What would 'good enough' look like here?"</p>
+    </div>
+    <div class="stack tight"><span class="label">When to get more support</span>
+      <p>Talk to a pediatrician or licensed mental health professional if problems last for several weeks, keep getting worse, or affect school, sleep, eating, or relationships. They can check for anxiety, ADHD, depression, trauma, sleep problems, or medical and medication factors. For anxiety, cognitive behavioral therapy (CBT) has strong evidence. School supports may also help.</p>
+      <p class="small muted">This toolkit offers general education, not a diagnosis or treatment plan. Its tools are based on common coaching, CBT, and sleep practices, but the toolkit itself hasn't been tested as a program. Individual teens may respond differently.</p>
+    </div>`;
+  return top() + `<div class="stack tight"><h1>Plan</h1><p class="muted">Quick check-ins for the week, plus your own reset plan.</p></div>
+    <div>
+      ${sec('sun', 'Sunday: plan the week', '15 minutes', sunday)}
+      ${sec('fri', 'Friday: close the week', '5 minutes', friday)}
+      ${sec('big', 'Big assignments', 'Break it into steps', big)}
+      ${sec('mine', 'My reset plan', 'What to do when I hit Red', reset)}
+      ${sec('adults', 'For adults', 'How to help, and when to get more support', adults)}
+    </div>
+    <p class="small muted" id="sync-line">${syncText()}</p>`;
+}
+function bigCard(b) {
+  const due = b.due ? parseDay(b.due) : null;
+  const left = due ? Math.round((due - parseDay(today())) / 864e5) : null;
+  const dueText = due ? `Due ${due.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}${left > 1 ? `, ${left} days away` : left === 1 ? ', tomorrow' : left === 0 ? ', today' : ', past due'}` : 'No due date';
+  const k = 'big-' + b.id;
+  return `<details data-key="${k}"${ui.open.has(k) ? ' open' : ''}><summary>${esc(b.title)}<br><span class="small muted" style="font-weight:400">${esc(dueText)}</span></summary><div class="body">
+    ${b.steps.map((s, i) => `<div class="step">
+      <div class="checkline"><button class="check${s.done ? ' on' : ''}" data-act="big-check" data-v="${b.id}" data-i="${i}" aria-pressed="${!!s.done}" aria-label="Step ${i + 1} finished"><i>${s.done ? '✓' : ''}</i></button>
+      <input id="bs-${b.id}-${i}" type="text" aria-label="Step ${i + 1}" data-big="${b.id}" data-i="${i}" data-f="text" placeholder="${i === 0 ? 'Last step before it’s due' : 'The step before that'}" value="${esc(s.text)}"></div>
+      <div class="row" style="align-items:center"><div class="field"><label for="bd-${b.id}-${i}" class="small">Finish by</label><input id="bd-${b.id}-${i}" type="date" data-big="${b.id}" data-i="${i}" data-f="by" value="${esc(s.by)}"></div>
+      <button class="mini" data-act="big-today" data-v="${b.id}" data-i="${i}">Add to Today</button></div>
+    </div>`).join('')}
+    <div><button class="btn small-btn" data-act="big-step" data-v="${b.id}">Add a step</button></div>
+    <div class="row">
+      <div class="field"><label for="be-${b.id}">Estimated time</label><input id="be-${b.id}" type="text" data-big="${b.id}" data-f="est" placeholder="2 hours" value="${esc(b.est)}"></div>
+      <div class="field"><label for="ba-${b.id}">Actual time</label><input id="ba-${b.id}" type="text" data-big="${b.id}" data-f="act" value="${esc(b.act)}"></div>
+    </div>
+    <div class="field"><label for="bo-${b.id}">Possible obstacle and backup plan</label><input id="bo-${b.id}" type="text" data-big="${b.id}" data-f="obstacle" value="${esc(b.obstacle)}"></div>
+    <div><button class="mini" data-act="big-del" data-v="${b.id}">${ui.confirm === b.id ? 'Tap again to remove' : 'Remove this assignment'}</button></div>
+  </div></details>`;
+}
+
+/* ---------- Render ---------- */
+const VIEWS = { today: viewToday, reset: viewReset, stuck: viewStuck, plan: viewPlan };
+const TABS = [['today', 'Today'], ['reset', 'Reset'], ['stuck', 'Stuck'], ['plan', 'Plan']];
+function render() {
+  $('app').innerHTML = VIEWS[ui.tab]();
+  $('tabs').innerHTML = TABS.map(([k, n]) => `<button data-act="tab" data-v="${k}"${ui.tab === k ? ' aria-current="page"' : ''}>${n}</button>`).join('');
+}
+function go(tab) { ui.tab = tab; render(); window.scrollTo(0, 0); }
+
+/* ---------- Full-screen layer ---------- */
+let clock = null, wake = null, audio = null;
+function layerOpen(html) { $('layer').innerHTML = html; $('layer').hidden = false; $('layer').scrollTop = 0; }
+function layerClose() { clearInterval(clock); clock = null; ui.layer = null; $('layer').hidden = true; $('layer').innerHTML = ''; releaseWake(); render(); }
+async function keepAwake() { try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch {} }
+function releaseWake() { try { wake && wake.release(); } catch {} wake = null; }
+function primeAudio() { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch {} }
+function chime() {
+  try {
+    if (!audio) return;
+    [0, .28].forEach((d, i) => {
+      const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + d;
+      o.frequency.value = i ? 784 : 587; g.gain.setValueAtTime(.0001, t);
+      g.gain.exponentialRampToValueAtTime(.2, t + .03); g.gain.exponentialRampToValueAtTime(.0001, t + .7);
+      o.connect(g).connect(audio.destination); o.start(t); o.stop(t + .75);
+    });
+  } catch {}
+}
+function showHelp() {
+  ui.layer = { type: 'help' };
+  layerOpen(`<div class="screen">
+    <h1>You don't have to handle this alone.</h1>
+    <p>If you're thinking about suicide or hurting yourself, or you don't feel safe, reach out now.</p>
+    <div class="stack tight"><span class="label">In the US, any time</span><p class="dial">Call or text 988</p></div>
+    <div class="stack tight"><span class="label">In immediate danger</span><p class="dial">Call 911</p><p>Or go to the nearest emergency room.</p></div>
+    <p>Tell an adult you trust, too. ${state.plan.who ? `You listed: <b>${esc(state.plan.who)}</b>.` : ''}</p>
+    <button class="btn" data-act="close">Back</button>
+  </div>`);
+}
+
+/* Guided resets: a timeline of timed segments, or cards you tap through. */
+function timeline(id) {
+  if (id === 'breathe') { const a = []; for (let i = 0; i < 12; i++) a.push({ l: 'Breathe in', s: 4, c: 'grow' }, { l: 'Breathe out', s: 6, c: 'shrink' }); return a; }
+  if (id === 'muscle') { const a = []; ['shoulders', 'hands', 'legs'].forEach(p => a.push({ l: `Tense your ${p}`, s: 5, c: 'grow' }, { l: 'Let go', s: 5, c: 'shrink' })); return a; }
+  if (id === 'move') return [{ l: 'Walk, climb stairs, or do wall push-ups', s: 300, c: 'hold' }];
+  return [{ l: 'Dim the lights, use headphones, or go somewhere quiet', s: 600, c: 'hold' }];
+}
+const GROUND = [[5, 'things you see'], [4, 'things you feel'], [3, 'things you hear'], [2, 'things you smell'], [1, 'thing you taste']];
+function startReset(id) {
+  const r = RESETS[id];
+  if (r.kind === 'phrase') {
+    ui.layer = { type: 'reset', id };
+    return layerOpen(`<div class="screen"><span class="label">Name it</span><div class="center"><p class="quote" style="font-size:1.7rem">"My alarm is going off. I don't have to solve everything right now."</p><p class="muted">Say it out loud or in your head.</p></div><button class="btn primary" data-act="reset-end">Done</button></div>`);
+  }
+  if (r.kind === 'cards') { ui.layer = { type: 'reset', id, i: 0 }; return groundCard(); }
+  const segs = timeline(id);
+  ui.layer = { type: 'reset', id, segs, start: Date.now(), total: segs.reduce((n, s) => n + s.s, 0), seg: -1 };
+  layerOpen(`<div class="screen"><span class="label">${r.name}</span>
+    <div class="center"><div class="ringbox"><div class="ring" id="ring"></div></div><p class="quote" id="p-label" aria-live="polite"></p><p class="count" id="p-count"></p></div>
+    <button class="btn" data-act="reset-end">End</button></div>`);
+  keepAwake(); clearInterval(clock); clock = setInterval(tickReset, 200); tickReset();
+}
+function tickReset() {
+  const L = ui.layer; if (!L || !L.segs) return;
+  let e = (Date.now() - L.start) / 1000, i = 0;
+  if (e >= L.total) { clearInterval(clock); clock = null; chime(); return resetFinished(); }
+  while (e >= L.segs[i].s) { e -= L.segs[i].s; i++; }
+  const seg = L.segs[i], left = Math.ceil(seg.s - e);
+  if (i !== L.seg) { L.seg = i; $('p-label').textContent = seg.l; $('ring').className = 'ring ' + seg.c; }
+  $('p-count').textContent = seg.s >= 60 ? `${Math.floor(left / 60)}:${pad(left % 60)}` : left;
+}
+function groundCard() {
+  const [n, t] = GROUND[ui.layer.i], last = ui.layer.i === GROUND.length - 1;
+  layerOpen(`<div class="screen"><span class="label">5-4-3-2-1 grounding</span>
+    <div class="center"><p class="big-n">${n}</p><p class="quote" style="font-size:1.5rem">Name ${n} ${t}</p></div>
+    <button class="btn primary" data-act="ground-next">${last ? 'Done' : 'Next'}</button>
+    <button class="link" data-act="reset-end">End</button></div>`);
+}
+function resetFinished() {
+  const id = ui.layer.id;
+  layerOpen(`<div class="screen"><div class="center"><h1>Nice. Reset done.</h1><p class="muted">Notice how your body feels now.</p></div>
+    ${id === 'breathe' ? `<button class="btn" data-act="reset" data-v="breathe">Go 2 more minutes</button>` : ''}
+    <button class="btn primary" data-act="reset-end">Back</button></div>`);
+}
+
+/* Focus timer. It counts down to a clock time, so it stays right if the phone sleeps. */
+function saveTimer() { const f = ui.layer; if (f && f.type === 'focus' && f.mode !== 'park') lsSet(TIMER_KEY, f); else lsDel(TIMER_KEY); }
+function startFocus(id, mins, mode) {
+  primeAudio();
+  ui.layer = { type: 'focus', id, mode: mode || 'work', total: mins * 60, endAt: Date.now() + mins * 6e4, left: null, firstFive: mins === 5 && !mode };
+  showFocus();
+}
+function showFocus() {
+  const f = ui.layer, t = findTask(f.id) || { title: '' };
+  saveTimer();
+  if (f.mode === 'end') return showEnd(t);
+  if (f.mode === 'breakover') return showBreakOver(t);
+  if (f.mode === 'park') return showPark(t);
+  const brk = f.mode === 'break';
+  layerOpen(`<div class="screen">
+    <div class="stack tight"><span class="label">${brk ? 'Break' : 'Focus'}</span><h2>${brk ? 'Step away from the work.' : esc(t.title)}</h2>
+    ${!brk && t.step ? `<p>${esc(t.step)}</p>` : ''}</div>
+    <div class="center"><p class="clock" id="f-time" role="timer">0:00</p><div class="bar"><i id="f-bar"></i></div>
+    <p class="muted small">${brk ? 'Stretch, get water, look out a window.' : 'Put your phone face down and out of reach. It chimes at the end if the sound is on.'}</p></div>
+    <div class="row"><button class="btn" id="f-pause" data-act="f-pause">${f.left != null ? 'Resume' : 'Pause'}</button><button class="btn" data-act="${brk ? 'f-skipbreak' : 'f-stop'}">${brk ? 'End break' : 'Stop'}</button></div>
+  </div>`);
+  keepAwake(); clearInterval(clock); clock = setInterval(tickFocus, 250); tickFocus();
+}
+function tickFocus() {
+  const f = ui.layer; if (!f || f.type !== 'focus' || !$('f-time')) return;
+  const left = f.left != null ? f.left : Math.max(0, Math.ceil((f.endAt - Date.now()) / 1000));
+  $('f-time').textContent = `${Math.floor(left / 60)}:${pad(left % 60)}`;
+  $('f-bar').style.width = (100 * (1 - left / f.total)) + '%';
+  if (left <= 0) {
+    clearInterval(clock); clock = null; chime(); releaseWake();
+    f.mode = f.mode === 'break' ? 'breakover' : 'end';
+    showFocus();
+  }
+}
+function showEnd(t) {
+  const f = ui.layer;
+  layerOpen(`<div class="screen"><div class="center">
+    <h1>${f.firstFive ? 'You started.' : 'Time.'}</h1>
+    ${t.means ? `<div class="stack tight"><span class="label">"Done" means</span><p class="quote">${esc(t.means)}</p><p class="muted">If that's true, stop here.</p></div>` : `<p class="muted">${f.firstFive ? 'Keep going, or stop and save your place.' : 'Stop here unless there is a real reason to continue.'}</p>`}
+    </div>
+    <button class="btn primary" data-act="f-done">It's done</button>
+    ${f.firstFive ? `<div class="row"><button class="btn" data-act="f-more" data-m="15">15 more</button><button class="btn" data-act="f-more" data-m="25">25 more</button></div>` : `<button class="btn" data-act="f-break">Take a 5-minute break</button>`}
+    <button class="btn" data-act="f-stop">Stop and save my place</button>
+  </div>`);
+}
+function showBreakOver() {
+  layerOpen(`<div class="screen"><div class="center"><h1>Break's over.</h1><p class="muted">Ready for another round?</p></div>
+    <div class="row"><button class="btn primary" data-act="f-more" data-m="15">15 min</button><button class="btn primary" data-act="f-more" data-m="25">25 min</button></div>
+    <button class="btn" data-act="f-done">It's done</button>
+    <button class="btn" data-act="f-stop">Stop and save my place</button></div>`);
+}
+function showPark(t) {
+  const p = t.parked || {};
+  layerOpen(`<div class="screen"><div class="stack tight"><h1>Save your place</h1><p class="muted">Future you will thank you.</p></div>
+    <div class="field"><label for="park-where">Where I stopped</label><input id="park-where" type="text" value="${esc(p.where)}"></div>
+    <div class="field"><label for="park-next">What comes next</label><input id="park-next" type="text" value="${esc(p.next)}"></div>
+    <button class="btn primary" data-act="f-parksave">Save and close</button>
+    <button class="link" data-act="f-close">Close without saving</button></div>`);
+}
+
+/* ---------- Actions ---------- */
+const actions = {
+  tab: v => go(v),
+  help: showHelp,
+  close: layerClose,
+  level(v) { state.level = v; state.resetDone = false; save(); render(); window.scrollTo(0, 0); },
+  recheck() { state.level = null; state.resetDone = false; save(); ui.tab = 'today'; render(); window.scrollTo(0, 0); },
+  'skip-reset'() { state.resetDone = true; save(); render(); },
+  reset(v) { primeAudio(); clearInterval(clock); startReset(v); },
+  'reset-end'() { if (state.level === 'yellow' && !state.resetDone) { state.resetDone = true; save(); if (ui.tab !== 'today') ui.tab = 'today'; } layerClose(); },
+  'ground-next'() { if (ui.layer.i === GROUND.length - 1) return resetFinished(); ui.layer.i++; groundCard(); },
+  toggle(v) { const t = findTask(v); t.done = !t.done; save(); render(); },
+  first(v) { const i = state.tasks.findIndex(t => t.id === v); state.tasks.unshift(state.tasks.splice(i, 1)[0]); save(); render(); },
+  snooze(v) { const d = new Date(); d.setDate(d.getDate() + 1); findTask(v).snooze = dayKey(d); save(); render(); },
+  focus(v, el) { startFocus(v, Number(el.dataset.m)); },
+  'f-pause'() {
+    const f = ui.layer;
+    if (f.left != null) { f.endAt = Date.now() + f.left * 1000; f.left = null; $('f-pause').textContent = 'Pause'; }
+    else { f.left = Math.max(0, Math.ceil((f.endAt - Date.now()) / 1000)); $('f-pause').textContent = 'Resume'; }
+    saveTimer();
+  },
+  'f-stop'() { clearInterval(clock); clock = null; ui.layer.mode = 'park'; showFocus(); },
+  'f-skipbreak'() { clearInterval(clock); clock = null; ui.layer.mode = 'breakover'; showFocus(); },
+  'f-more'(v, el) { startFocus(ui.layer.id, Number(el.dataset.m), 'work'); ui.layer.firstFive = false; },
+  'f-break'() { startFocus(ui.layer.id, 5, 'break'); },
+  'f-done'() { const t = findTask(ui.layer.id); if (t) { t.done = true; t.parked = null; } lsDel(TIMER_KEY); save(); ui.tab = 'today'; layerClose(); },
+  'f-parksave'() { const t = findTask(ui.layer.id); if (t) t.parked = { where: $('park-where').value.trim(), next: $('park-next').value.trim() }; lsDel(TIMER_KEY); save(); layerClose(); },
+  'f-close'() { lsDel(TIMER_KEY); layerClose(); },
+  'wk-sun'(v) { state.week.sun[v] = !state.week.sun[v]; save(); render(); },
+  'wk-pack'() { state.week.pack = !state.week.pack; save(); render(); },
+  'big-check'(v, el) { const s = state.big.find(b => b.id === v).steps[el.dataset.i]; s.done = !s.done; save(); render(); },
+  'big-step'(v) { state.big.find(b => b.id === v).steps.push({ text: '', by: '', done: false }); save(); render(); },
+  'big-today'(v, el) {
+    const b = state.big.find(x => x.id === v), s = b.steps[el.dataset.i];
+    if (!s.text.trim()) { $(`bs-${v}-${el.dataset.i}`).focus(); return; }
+    state.tasks.push(newTask(`${b.title}: ${s.text.trim()}`)); save(); el.textContent = 'Added';
+  },
+  'big-del'(v) { if (ui.confirm === v) { state.big = state.big.filter(b => b.id !== v); ui.confirm = null; save(); } else ui.confirm = v; render(); },
+  async 'copy-plan'() {
+    const p = state.plan;
+    const text = `My reset plan\nEarly warning signs: ${p.signs}\nTwo things that help: ${p.helps}\nWhere I can go: ${p.where}\nWho I can talk to: ${p.who}\nWhat I'd like adults to say or do: ${p.adults}`;
+    try { await navigator.clipboard.writeText(text); $('copy-btn').textContent = 'Copied'; }
+    catch { const a = $('copy-fallback'); a.value = text; a.hidden = false; a.focus(); a.select(); $('copy-btn').textContent = 'Select the text below and copy it'; }
+  }
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  actions[el.dataset.act](el.dataset.v, el);
+});
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  if (e.target.id === 'add-form') {
+    const v = $('add-task').value.trim(); if (!v) return;
+    state.tasks.push(newTask(v)); save(); render(); $('add-task').focus();
+  }
+  if (e.target.id === 'big-form') {
+    const v = $('big-title').value.trim(); if (!v) return $('big-title').focus();
+    const id = uid();
+    state.big.push({ id, title: v, due: $('big-due').value, steps: [0, 1, 2].map(() => ({ text: '', by: '', done: false })), est: '', act: '', obstacle: '' });
+    ui.open.add('big-' + id); save(); render();
+  }
+});
+function setPath(path, val) { const k = path.split('.'); let o = state; while (k.length > 1) o = o[k.shift()]; o[k[0]] = val; }
+function onField(e) {
+  const d = e.target.dataset;
+  if (d.b) { setPath(d.b, e.target.value); save(); }
+  else if (d.t) {
+    const t = findTask(d.t); if (!t) return;
+    t[d.f] = e.target.value; save();
+    const it = $('ifthen');
+    if (it) { const s = t.start && t.place; it.hidden = !s; it.textContent = s ? `If it's ${fmtTime(t.start)}, then I open this at ${t.place}.` : ''; }
+  } else if (d.big) {
+    const b = state.big.find(x => x.id === d.big); if (!b) return;
+    if (d.i != null) b.steps[d.i][d.f] = e.target.value; else b[d.f] = e.target.value;
+    save();
+  }
+}
+document.addEventListener('input', onField);
+document.addEventListener('change', onField);
+document.addEventListener('toggle', e => { const k = e.target.dataset && e.target.dataset.key; if (k) e.target.open ? ui.open.add(k) : ui.open.delete(k); }, true);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  if (ui.layer && ui.layer.type === 'focus') { if (clock) { keepAwake(); tickFocus(); } }
+  else if (!ui.layer) { const was = state.day; rollover(); if (was !== state.day && !typing()) render(); pull(); }
+});
+
+rollover();
+render();
+const saved = lsGet(TIMER_KEY);
+if (saved && saved.type === 'focus' && findTask(saved.id)) { ui.layer = saved; showFocus(); }
+connect();
+})();
+</script>
+
+</body></html>
